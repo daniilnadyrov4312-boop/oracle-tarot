@@ -5,6 +5,7 @@
   'use strict';
 
   var T = window.TAROT;
+  var REF = window.TAROT_REF;
   var CARDS = T.cards;
   var SUITS = T.suits;
   var ELEMENTS = T.elements;
@@ -128,6 +129,28 @@
     return card.arcana === 'major' ? 'Старший аркан' : SUITS[card.suit].short;
   }
 
+  /* ---------- число карты и её семья ---------- */
+  function familyNumber(card) {
+    if (card.arcana === 'minor') {
+      return card.rank <= 10 ? card.rank : null;
+    }
+    if (card.rank === 0) return null;
+    var s = card.rank;
+    while (s > 9) {
+      s = String(s).split('').reduce(function (a, d) { return a + Number(d); }, 0);
+    }
+    return s;
+  }
+
+  function familyLine(card) {
+    var n = familyNumber(card);
+    if (!n) return '';
+    var num = REF.numbers[n - 1];
+    if (!num) return '';
+    return '<span class="fam-n">' + n + '</span><span class="fam-t">' + num.principle +
+      '</span><span class="fam-m">' + num.majors.join(' · ') + '</span>';
+  }
+
   /* =======================================================================
      Библиотека
      ======================================================================= */
@@ -244,12 +267,38 @@
   /* =======================================================================
      Анализ расклада
      ======================================================================= */
+  /* ---------- повторы карт ---------- */
+  var REPEAT_TEXT = {
+    '8-3': 'Три восьмёрки читаются как свадьба.',
+    '14-3': 'Три короля — консультация.',
+    '14-2': 'Два короля — совет по мелкому поводу.',
+    '10-3': 'Три десятки — новое обстоятельство.',
+    '10-2': 'Две десятки — маленькая перемена.'
+  };
+
+  function repeatNote(allRanks) {
+    var best = null;
+    Object.keys(allRanks).forEach(function (r) {
+      var count = allRanks[r];
+      if (count >= 2 && (!best || count > best.count)) best = { rank: Number(r), count: count };
+    });
+    if (!best) return '';
+    var fixed = REPEAT_TEXT[best.rank + '-' + best.count];
+    if (fixed) return fixed;
+    if (best.rank <= 10) {
+      return 'Число <b>' + best.rank + '</b> повторяется (' + best.count + ' раза): ' +
+        REF.numbers[best.rank - 1].essence;
+    }
+    return 'Повторяется карта одного ранга (' + best.count + ') — тема звучит громче.';
+  }
+
   function analyze(list) {
     var n = list.length;
     var suitCount = { major: 0, wands: 0, cups: 0, swords: 0, pentacles: 0 };
     var elCount = { fire: 0, water: 0, air: 0, earth: 0 };
     var toneCount = { light: 0, neutral: 0, heavy: 0 };
     var ranks = {};
+    var allRanks = {};
     var courts = [];
     var aces = [];
 
@@ -258,6 +307,7 @@
       elCount[c.element]++;
       toneCount[c.tone]++;
       if (c.arcana === 'minor') {
+        allRanks[c.rank] = (allRanks[c.rank] || 0) + 1;
         if (c.rank <= 10) ranks[c.rank] = (ranks[c.rank] || 0) + 1;
         else courts.push(c);
         if (c.rank === 1) aces.push(c);
@@ -339,13 +389,20 @@
       notes.push('Есть Туз — в теме открывается новое начало, а не продолжение старого.');
     }
 
-    var repRank = null;
-    Object.keys(ranks).forEach(function (r) {
-      if (ranks[r] >= 2) repRank = Number(r);
-    });
-    if (repRank) {
-      notes.push('Число <b>' + repRank + '</b> повторяется (' + ranks[repRank] + ' раза): ' + T.numbers[repRank - 1].text);
+    /* --- чего в раскладе нет --- */
+    var missing = ['wands', 'cups', 'swords', 'pentacles'].filter(function (k) { return suitCount[k] === 0; });
+    if (missing.length && n >= 2 && missing.length < 4) {
+      var mItem = null;
+      REF.missing.items.forEach(function (it) { if (it.suit === missing[0]) mItem = it; });
+      if (mItem) {
+        notes.push('<b>' + SUIT_FORMS[missing[0]][2] + '</b> нет в раскладе — ' + mItem.text +
+          '. Это не про «нет чувств или денег»: просто в этой ситуации такой стихии сейчас нет.');
+      }
     }
+
+    /* --- повторы --- */
+    var repText = repeatNote(allRanks);
+    if (repText) notes.push(repText);
 
     return { n: n, paragraphs: paragraphs, bars: bars, elBars: elBars, notes: notes.slice(0, 5), suitCount: suitCount };
   }
@@ -380,6 +437,7 @@
             '<span class="sep">·</span>' + ELEMENTS[card.element].name +
             '<span class="sep">·</span>' + TONE_LABEL[card.tone] +
           '</div>' +
+          (familyLine(card) ? '<div class="sel-family">' + familyLine(card) + '</div>' : '') +
         '</div>' +
         '<button class="sel-remove" data-remove="' + card.id + '" aria-label="Убрать ' + card.name + '">×</button>' +
       '</div>' +
@@ -506,7 +564,9 @@
       t.setAttribute('aria-selected', on ? 'true' : 'false');
     });
     $('#tab-cards').hidden = name !== 'cards';
+    $('#tab-table').hidden = name !== 'table';
     $('#tab-guide').hidden = name !== 'guide';
+    jumpBtn.classList.toggle('is-visible', name === 'cards' && state.selected.length > 0);
   }
 
   $$('.tab').forEach(function (tab) {
@@ -563,10 +623,464 @@
       '</article>';
     }).join('');
 
-    $('#numGrid').innerHTML = T.numbers.map(function (n) {
-      return '<div class="num-card"><span class="n">' + n.n + '</span><p>' + n.text + '</p></div>';
+    /* --- числовые семьи --- */
+    $('#familiesWrap').innerHTML =
+      '<b>' + REF.families.title + '.</b> ' + REF.families.lead +
+      '<span class="ref-example">' + REF.families.example + '</span>';
+
+    $('#numberGrid').innerHTML = REF.numbers.map(function (n) {
+      return '<article class="num-item">' +
+        '<div class="num-top">' +
+          '<span class="num-big">' + n.n + '</span>' +
+          '<div>' +
+            '<div class="num-name">' + n.name + ' <span>— ' + n.principle + '</span></div>' +
+            '<div class="num-majors">' + n.majors.join(' · ') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<p class="num-kw">' + n.keywords.join(' · ') + '</p>' +
+        '<p class="num-feels">Как ощущается: ' + n.feels + '</p>' +
+        '<p class="num-essence">' + n.essence + '</p>' +
+        (n.note ? '<p class="num-note">' + n.note + '</p>' : '') +
+      '</article>';
     }).join('');
+
+    /* --- придворные карты --- */
+    $('#courtGrid').innerHTML = REF.courts.map(function (c) {
+      return '<article class="court-card">' +
+        '<div class="court-rank">' + c.rank + '</div>' +
+        '<div class="court-title">' + c.title + '</div>' +
+        '<p class="court-line">' + c.line + '</p>' +
+        '<dl>' +
+          '<dt>Ключевые слова</dt><dd>' + c.keywords.join(' · ') + '</dd>' +
+          '<dt>Как ощущается</dt><dd>' + c.feels + '</dd>' +
+          '<dt>Обратная сторона</dt><dd>' + c.shadow + '</dd>' +
+        '</dl>' +
+      '</article>';
+    }).join('');
+
+    $('#kingsWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<h3>Четыре короля — четыре типажа</h3>' +
+        '<div class="kings">' +
+          REF.kings.map(function (k) {
+            return '<div class="king-row" style="--accent:' + SUITS[{
+              'Пентакли': 'pentacles', 'Жезлы': 'wands', 'Мечи': 'swords', 'Кубки': 'cups'
+            }[k.suit]].color + '">' +
+              '<span class="king-suit">' + k.suit + '</span>' +
+              '<span class="king-type">' + k.type + '</span>' +
+              '<span class="king-about">' + k.about + '</span>' +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<div class="note-box" style="margin-top:14px">' + REF.courtNote + '</div>';
+
+    /* --- сигнификатор --- */
+    $('#significatorWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<p>' + REF.significator.lead + '</p>' +
+        '<div class="ways">' +
+          REF.significator.ways.map(function (w) {
+            return '<div class="way"><span class="way-title">' + w.title + '</span>' +
+              '<span class="way-text">' + w.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    /* --- пустая масть --- */
+    $('#missingWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<p>' + REF.missing.lead + '</p>' +
+        '<div class="miss-grid">' +
+          REF.missing.items.map(function (m) {
+            var s = SUITS[m.suit];
+            return '<div class="miss" style="--accent:' + s.color + '">' +
+              '<i class="dot"></i><b>' + s.name + '</b><span>' + m.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+        '<p class="ref-caveat">' + REF.missing.caveat + '</p>' +
+      '</div>';
+
+    /* --- куда смотрят --- */
+    $('#gazeWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<p>' + REF.gaze.lead + '</p>' +
+        '<div class="gaze-grid">' +
+          REF.gaze.items.map(function (g) {
+            return '<div class="gaze"><span class="gaze-title">' + g.title + '</span>' +
+              '<span class="gaze-text">' + g.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    /* --- повторы --- */
+    $('#repeatsWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<p>' + REF.repeats.lead + '</p>' +
+        '<div class="repeat-grid">' +
+          REF.repeats.items.map(function (r) {
+            return '<div class="repeat"><span class="repeat-label">' + r.label + '</span>' +
+              '<span class="repeat-text">' + r.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>';
+
+    /* --- слои --- */
+    $('#layersWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<p>' + REF.layers.lead + '</p>' +
+        '<div class="layer-grid">' +
+          REF.layers.items.map(function (l, i) {
+            return '<div class="layer"><span class="layer-n">' + (i + 1) + '</span>' +
+              '<span class="layer-name">' + l.name + '</span>' +
+              '<span class="layer-text">' + l.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      REF.layers.caseStudies.map(function (cs) {
+        return '<div class="ref-card case">' +
+          '<div class="case-head"><span class="case-numeral">' + cs.numeral + '</span>' +
+            '<h3>' + cs.card + '</h3><span class="case-tag">разбор по слоям</span></div>' +
+          cs.steps.map(function (s) {
+            return '<div class="case-step"><span class="case-name">' + s.name + '</span>' +
+              '<p>' + s.text + '</p></div>';
+          }).join('') +
+          '<p class="case-summary">' + cs.summary + '</p>' +
+        '</div>';
+      }).join('');
   }
+
+  /* ---------- связки стихий ---------- */
+  function renderPairs() {
+    $('#pairsWrap').innerHTML =
+      '<div class="ref-card">' +
+        '<h3>Как соседние карты влияют друг на друга</h3>' +
+        '<p>' + REF.pairs.lead + '</p>' +
+        '<div class="pair-rules">' +
+          REF.pairs.rules.map(function (r) {
+            return '<div class="pair-rule pair-rule--' + r.kind + '">' +
+              '<span class="pair-title">' + r.title + '</span>' +
+              '<span class="pair-text">' + r.text + '</span></div>';
+          }).join('') +
+        '</div>' +
+        '<p class="ref-example">' + REF.pairs.example + '</p>' +
+      '</div>';
+  }
+
+  /* =======================================================================
+     Стол
+     ======================================================================= */
+  var LAYOUTS = [
+    {
+      id: 'row3', name: 'Ряд из 3', note: 'прошлое · настоящее · будущее',
+      cols: ['Прошлое', 'Настоящее', 'Будущее'],
+      slots: [
+        { title: 'Прошлое', lens: 'Сюда привело', hint: 'что привело в эту точку' },
+        { title: 'Настоящее', lens: 'Сейчас', hint: 'что происходит на самом деле' },
+        { title: 'Будущее', lens: 'К этому идёт', hint: 'куда движется ситуация' }
+      ]
+    },
+    {
+      id: 'row5', name: 'Ряд из 5', note: 'ситуация и итог',
+      cols: ['Ситуация', 'Что мешает', 'Что помогает', 'Совет', 'Итог'],
+      slots: [
+        { title: 'Ситуация', lens: 'Ситуация', hint: 'что происходит' },
+        { title: 'Что мешает', lens: 'Мешает', hint: 'что тормозит' },
+        { title: 'Что помогает', lens: 'Помогает', hint: 'на что опереться' },
+        { title: 'Совет', lens: 'Совет', hint: 'что сделать' },
+        { title: 'Итог', lens: 'Итог', hint: 'чем закончится' }
+      ]
+    },
+    {
+      id: 'grid9', name: '9 карт', note: 'мысли · чувства · действия',
+      grid: true,
+      rows: [
+        { title: 'Мысли', lens: 'В мыслях', hint: 'что в голове' },
+        { title: 'Чувства', lens: 'В чувствах', hint: 'что на сердце' },
+        { title: 'Действия', lens: 'В действиях', hint: 'что вы делаете' }
+      ],
+      cols: ['Прошлое', 'Настоящее', 'Будущее'],
+      slots: []
+    }
+  ];
+
+  (function buildGridSlots() {
+    var g = LAYOUTS[2];
+    g.rows.forEach(function (row) {
+      g.cols.forEach(function (col) {
+        g.slots.push({
+          title: row.title + ' · ' + col,
+          lens: row.lens + ' · ' + col.toLowerCase(),
+          hint: row.hint + ' — ' + col.toLowerCase(),
+          row: row.title,
+          col: col
+        });
+      });
+    });
+  })();
+
+  var table = { layout: 'row3', slots: [], open: null };
+  var tableFelt = $('#tableFelt');
+  var tableReadings = $('#tableReadings');
+  var tableStatus = $('#tableStatus');
+  var clearTableBtn = $('#clearTable');
+  var picker = $('#picker');
+  var pickerGrid = $('#pickerGrid');
+  var pickerSearch = $('#pickerSearch');
+
+  function currentLayout() {
+    for (var i = 0; i < LAYOUTS.length; i++) if (LAYOUTS[i].id === table.layout) return LAYOUTS[i];
+    return LAYOUTS[0];
+  }
+
+  function resetTable() {
+    table.slots = currentLayout().slots.map(function () { return null; });
+    table.open = null;
+  }
+
+  function slotButtonHTML(slot, i, card) {
+    var body = card
+      ? '<img src="' + cardImage(card) + '" alt="' + card.name + '" loading="lazy">'
+      : '<span class="tslot-plus">+</span>';
+    return '<button class="tslot' + (card ? ' is-filled' : '') + '" data-slot="' + i + '" ' +
+      'aria-label="' + (card ? 'Заменить карту в позиции ' + slot.title : 'Поставить карту в позицию ' + slot.title) + '">' +
+      body + '</button>';
+  }
+
+  function slotCaption(card, hint) {
+    return card
+      ? '<span class="tslot-under">' + card.name + '</span>'
+      : '<span class="tslot-under is-hint">' + hint + '</span>';
+  }
+
+  function renderTable() {
+    var L = currentLayout();
+
+    $('#layoutChips').innerHTML = LAYOUTS.map(function (l) {
+      return '<button class="layout-chip' + (l.id === L.id ? ' is-active' : '') + '" data-layout="' + l.id + '">' +
+        '<b>' + l.name + '</b><span>' + l.note + '</span></button>';
+    }).join('');
+
+    if (L.grid) {
+      var html = '<div class="tgrid">' +
+        '<span class="tgrid-corner"></span>' +
+        L.cols.map(function (c) { return '<span class="tgrid-col">' + c + '</span>'; }).join('');
+      L.rows.forEach(function (row, ri) {
+        html += '<span class="tgrid-row">' + row.title + '</span>';
+        L.cols.forEach(function (col, ci) {
+          var i = ri * L.cols.length + ci;
+          html += '<div class="tcell">' +
+            slotButtonHTML(L.slots[i], i, table.slots[i]) +
+            (table.slots[i] ? slotCaption(table.slots[i], '') : '') +
+          '</div>';
+        });
+      });
+      html += '</div>';
+      tableFelt.innerHTML = html;
+      tableFelt.className = 'table-felt table-felt--grid';
+    } else {
+      tableFelt.innerHTML = '<div class="trow trow--' + L.slots.length + '">' +
+        L.slots.map(function (slot, i) {
+          return '<div class="tslot-wrap">' +
+            '<span class="tslot-title">' + slot.title + '</span>' +
+            slotButtonHTML(slot, i, table.slots[i]) +
+            slotCaption(table.slots[i], slot.hint) +
+          '</div>';
+        }).join('') + '</div>';
+      tableFelt.className = 'table-felt';
+    }
+
+    var filledCount = table.slots.filter(Boolean).length;
+    tableStatus.textContent = filledCount + ' из ' + table.slots.length + ' карт';
+    clearTableBtn.hidden = filledCount === 0;
+  }
+
+  /* ---------- чтение по позициям ---------- */
+  function readHTML(item) {
+    var card = item.card;
+    var slot = item.slot;
+    return '<article class="read">' +
+      '<div class="read-head">' +
+        miniCard(card) +
+        '<div>' +
+          '<span class="read-pos">' + slot.title + '</span>' +
+          '<h3 class="read-name">' + card.name + '</h3>' +
+          '<div class="sel-meta"><i class="dot"></i>' + suitLabel(card) +
+            '<span class="sep">·</span>' + ELEMENTS[card.element].name +
+            '<span class="sep">·</span>' + TONE_LABEL[card.tone] +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<p class="read-lens"><b>' + slot.lens + ':</b> ' + card.keywords.slice(0, 4).join(', ') + '.</p>' +
+      '<p class="read-meaning">' + card.meaning + '</p>' +
+      '<p class="read-advice"><b>Совет карты</b>' + card.advice + '</p>' +
+    '</article>';
+  }
+
+  function elementRelation(a, b) {
+    if (a.element === b.element) {
+      return { kind: 'same', label: 'одна стихия', text: 'Рядом родная стихия — карта звучит на полную.' };
+    }
+    var key = [a.element, b.element].sort().join('+');
+    var names = ELEMENTS[a.element].name + ' и ' + ELEMENTS[b.element].name.toLowerCase();
+    if (key === 'air+fire' || key === 'earth+water') {
+      return { kind: 'friend', label: 'усиливают', text: names + ' — друзья, карты подпитывают друг друга.' };
+    }
+    if (key === 'air+water' || key === 'earth+fire') {
+      return { kind: 'neutral', label: 'нейтральны', text: names + ' — нейтральны: не мешают и не помогают.' };
+    }
+    return { kind: 'clash', label: 'гасят', text: names + ' — гасят друг друга, карта теряет силу.' };
+  }
+
+  function pairsHTML(filled) {
+    var L = currentLayout();
+    var pairs = [];
+    if (L.grid) {
+      var byIndex = {};
+      filled.forEach(function (f) { byIndex[f.index] = f; });
+      filled.forEach(function (f) {
+        var right = byIndex[f.index + 1];
+        if (right && f.index % 3 !== 2) pairs.push([f, right]);
+        var down = byIndex[f.index + 3];
+        if (down) pairs.push([f, down]);
+      });
+    } else {
+      for (var i = 0; i < filled.length - 1; i++) {
+        if (filled[i + 1].index === filled[i].index + 1) pairs.push([filled[i], filled[i + 1]]);
+      }
+    }
+    if (!pairs.length) return '';
+
+    var rows = pairs.map(function (p) {
+      var rel = elementRelation(p[0].card, p[1].card);
+      return '<div class="pair">' +
+        '<div class="pair-top">' +
+          '<span class="pair-cards">' + p[0].card.name + ' <i>+</i> ' + p[1].card.name + '</span>' +
+          '<span class="pair-rel pair-rel--' + rel.kind + '">' + rel.label + '</span>' +
+        '</div>' +
+        '<p>' + rel.text + '</p>' +
+      '</div>';
+    }).join('');
+
+    return '<div class="section-title"><h2>Связки соседних карт</h2><span class="rule"></span></div>' +
+      '<div class="pairs">' + rows + '</div>' +
+      '<p class="pairs-note">Схема Мэри Гри: друзья — Огонь + Воздух и Вода + Земля; нейтральные — Огонь + Земля и Воздух + Вода; гасят друг друга — Огонь + Вода и Воздух + Земля.</p>';
+  }
+
+  function renderTableReadings() {
+    var L = currentLayout();
+    var filled = [];
+    L.slots.forEach(function (slot, i) {
+      if (table.slots[i]) filled.push({ slot: slot, card: table.slots[i], index: i });
+    });
+
+    if (!filled.length) {
+      tableReadings.innerHTML = '<div class="table-empty">' +
+        '<div class="empty-mark"><svg viewBox="0 0 100 100"><rect x="18" y="18" width="26" height="30" rx="3"/>' +
+        '<rect x="56" y="18" width="26" height="30" rx="3"/><rect x="18" y="56" width="26" height="30" rx="3"/>' +
+        '<rect x="56" y="56" width="26" height="30" rx="3"/></svg></div>' +
+        '<h3>Стол пуст</h3>' +
+        '<p>Нажмите на любое поле выше и выберите карту. Трактовки появятся здесь — отдельно по каждой позиции.</p>' +
+      '</div>';
+      return;
+    }
+
+    var html = '<div class="section-title"><h2>Трактовки по позициям</h2><span class="rule"></span></div>' +
+      '<div class="reads">' + filled.map(readHTML).join('') + '</div>';
+
+    html += pairsHTML(filled);
+
+    var cards = filled.map(function (f) { return f.card; });
+    if (cards.length >= 2) html += summaryHTML(cards);
+
+    tableReadings.innerHTML = html;
+    requestAnimationFrame(function () {
+      $$('.bar-fill', tableReadings).forEach(function (el) { el.style.width = el.dataset.w + '%'; });
+    });
+  }
+
+  /* ---------- выбор карты ---------- */
+  function renderPickerGrid(query) {
+    var q = norm(query || '');
+    var items = CARDS.filter(function (c) {
+      if (!q) return true;
+      return norm([c.name, c.en, c.keywords.join(' '), SUITS[c.suit].name].join(' ')).indexOf(q) !== -1;
+    });
+    var current = table.open != null ? table.slots[table.open] : null;
+    pickerGrid.innerHTML = items.map(function (c) {
+      return '<button class="pick' + (current && current.id === c.id ? ' is-current' : '') +
+        '" data-pick="' + c.id + '" style="--accent:' + SUITS[c.suit].color + '">' +
+        '<span class="mini-card" style="--accent:' + SUITS[c.suit].color + '">' +
+          '<img src="' + cardImage(c) + '" alt="" loading="lazy" onerror="this.remove()">' +
+        '</span>' +
+        '<span class="pick-name">' + c.name + '</span>' +
+      '</button>';
+    }).join('') || '<p class="no-results">Ничего не нашлось.</p>';
+  }
+
+  function openPicker(index) {
+    table.open = index;
+    var slot = currentLayout().slots[index];
+    $('#pickerPos').textContent = slot.title;
+    $('#pickerRemove').hidden = !table.slots[index];
+    pickerSearch.value = '';
+    renderPickerGrid('');
+    picker.hidden = false;
+    document.body.classList.add('picker-open');
+    setTimeout(function () { pickerSearch.focus(); }, 40);
+  }
+
+  function closePicker() {
+    picker.hidden = true;
+    document.body.classList.remove('picker-open');
+    table.open = null;
+  }
+
+  tableFelt.addEventListener('click', function (e) {
+    var btn = e.target.closest('.tslot');
+    if (btn) openPicker(Number(btn.dataset.slot));
+  });
+
+  $('#layoutChips').addEventListener('click', function (e) {
+    var chip = e.target.closest('.layout-chip');
+    if (!chip || chip.dataset.layout === table.layout) return;
+    table.layout = chip.dataset.layout;
+    resetTable();
+    renderTable();
+    renderTableReadings();
+  });
+
+  clearTableBtn.addEventListener('click', function () {
+    resetTable();
+    renderTable();
+    renderTableReadings();
+  });
+
+  pickerGrid.addEventListener('click', function (e) {
+    var btn = e.target.closest('.pick');
+    if (!btn) return;
+    table.slots[table.open] = byId[btn.dataset.pick];
+    var idx = table.open;
+    closePicker();
+    renderTable();
+    renderTableReadings();
+  });
+
+  pickerSearch.addEventListener('input', function () { renderPickerGrid(pickerSearch.value); });
+
+  $('#pickerRemove').addEventListener('click', function () {
+    if (table.open == null) return;
+    table.slots[table.open] = null;
+    closePicker();
+    renderTable();
+    renderTableReadings();
+  });
+
+  $('#pickerClose').addEventListener('click', closePicker);
+  picker.addEventListener('click', function (e) { if (e.target === picker) closePicker(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !picker.hidden) closePicker();
+  });
 
   /* =======================================================================
      Фон
@@ -588,8 +1102,8 @@
      ======================================================================= */
   function readHash() {
     var raw = location.hash.replace(/^#/, '');
-    if (!raw) return null;
-    var tab = null;
+    var res = { tab: null, cards: [], table: [], layout: null };
+    if (!raw) return res;
     raw.split('&').forEach(function (part) {
       var kv = part.split('=');
       if (kv[0] === 's' && kv[1]) {
@@ -597,9 +1111,14 @@
           if (byId[id] && state.selected.indexOf(id) === -1) state.selected.push(id);
         });
       }
-      if (kv[0] === 'tab' && (kv[1] === 'guide' || kv[1] === 'cards')) tab = kv[1];
+      if (kv[0] === 't' && kv[1]) {
+        kv[1].split(',').forEach(function (id) { if (byId[id]) res.table.push(id); });
+      }
+      if (kv[0] === 'l' && kv[1]) res.layout = kv[1];
+      if (kv[0] === 'pick' && kv[1]) res.pick = Number(kv[1]);
+      if (kv[0] === 'tab' && (kv[1] === 'guide' || kv[1] === 'cards' || kv[1] === 'table')) res.tab = kv[1];
     });
-    return tab;
+    return res;
   }
 
   /* =======================================================================
@@ -610,9 +1129,22 @@
     SYMBOLS + '</svg>');
 
   stars();
-  var hashTab = readHash();
+  var hash = readHash();
   renderLibrary();
   renderGuide();
+  renderPairs();
+  if (hash.layout && LAYOUTS.some(function (l) { return l.id === hash.layout; })) {
+    table.layout = hash.layout;
+  }
+  resetTable();
+  if (hash.table.length) {
+    hash.table.slice(0, table.slots.length).forEach(function (id, i) { table.slots[i] = byId[id]; });
+  }
+  renderTable();
+  renderTableReadings();
+  if (typeof hash.pick === 'number' && hash.pick >= 0 && hash.pick < table.slots.length) {
+    openPicker(hash.pick);
+  }
   renderPanel();
-  if (hashTab && hashTab !== 'cards') switchTab(hashTab);
+  if (hash.tab && hash.tab !== 'cards') switchTab(hash.tab);
 })();

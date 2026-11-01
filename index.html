@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Библиотека значений карт Таро: 78 карт, старшие и младшие арканы, разбор мастей и стихий в раскладе.">
+<meta name="description" content="Библиотека значений карт Таро: 78 карт, старшие и младшие арканы, режим стола, разбор мастей и стихий.">
 <title>Оракул — значения карт Таро</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230b0916'/><path d='M50 16 L57 43 L84 50 L57 57 L50 84 L43 57 L16 50 L43 43 Z' fill='%23d9b978'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,6 +24,7 @@
     </a>
     <nav class="tabs" role="tablist" aria-label="Разделы">
       <button class="tab is-active" data-tab="cards" role="tab" aria-selected="true">Карты</button>
+      <button class="tab" data-tab="table" role="tab" aria-selected="false">Стол</button>
       <button class="tab" data-tab="guide" role="tab" aria-selected="false">Справочник</button>
     </nav>
   </div>
@@ -82,53 +83,99 @@
     </div>
   </section>
 
+  <!-- ============================ СТОЛ ============================ -->
+  <section id="tab-table" class="tab-panel table-page" role="tabpanel" hidden>
+
+    <div class="hero hero--table">
+      <p class="eyebrow">режим стола</p>
+      <h1>Раскладывайте <em>на столе</em></h1>
+      <p>Выберите формат, нажмите на пустое поле и поставьте карту. Трактовка идёт отдельно
+        по каждой позиции, а под столом — связки соседних карт, повторы и общая картина.</p>
+    </div>
+
+    <div class="layout-chips" id="layoutChips" role="group" aria-label="Формат стола"></div>
+
+    <div class="table-stage">
+      <div class="table-felt" id="tableFelt"></div>
+    </div>
+
+    <div class="table-actions">
+      <span class="table-status" id="tableStatus"></span>
+      <button class="icon-btn" id="clearTable" type="button" hidden>Очистить стол</button>
+    </div>
+
+    <div id="tableReadings"></div>
+  </section>
+
   <!-- ============================ СПРАВОЧНИК ============================ -->
   <section id="tab-guide" class="tab-panel guide" role="tabpanel" hidden>
 
     <div class="guide-head">
       <p class="eyebrow">как читать расклад</p>
       <h1>Справочник</h1>
-      <p>Масти, стихии и числа — то, что превращает набор карт в читаемый расклад.
-        Значения одной карты мало: важно, чего в раскладе больше и чего не хватает.</p>
+      <p>Масти, стихии, числа, придворные карты и приёмы чтения — то, что превращает
+        набор карт в читаемый расклад. Значения одной карты мало: важно, чего в раскладе
+        больше, чего нет и как карты стоят рядом.</p>
     </div>
 
     <div class="section">
-      <div class="section-title">
-        <h2>Масти</h2><span class="rule"></span>
-      </div>
+      <div class="section-title"><h2>Масти</h2><span class="rule"></span></div>
       <div class="suit-grid" id="suitGrid"></div>
     </div>
 
     <div class="section">
-      <div class="section-title">
-        <h2>Стихии</h2><span class="rule"></span>
-      </div>
+      <div class="section-title"><h2>Стихии</h2><span class="rule"></span></div>
       <div class="elem-grid" id="elemGrid"></div>
+      <div class="ref-block" id="pairsWrap"></div>
     </div>
 
     <div class="section">
-      <div class="section-title">
-        <h2>Числа</h2><span class="rule"></span>
-      </div>
-      <div class="num-grid" id="numGrid"></div>
-      <div class="note-box" style="margin-top:14px">
-        <b>Фигурные карты</b> — это люди и роли, а не события. Паж — весть, новичок, начало;
-        Рыцарь — действие и движение; Королева — зрелая энергия, обращённая вовне;
-        Король — власть, мастерство, ответственность.
-      </div>
+      <div class="section-title"><h2>Числа</h2><span class="rule"></span></div>
+      <div class="note-box" id="familiesWrap" style="margin-bottom:16px"></div>
+      <div class="number-list" id="numberGrid"></div>
     </div>
 
     <div class="section">
-      <div class="section-title">
-        <h2>Как читать расклад</h2><span class="rule"></span>
-      </div>
+      <div class="section-title"><h2>Придворные карты</h2><span class="rule"></span></div>
+      <div class="court-grid" id="courtGrid"></div>
+      <div class="ref-block" id="kingsWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Сигнификатор</h2><span class="rule"></span></div>
+      <div class="ref-block" id="significatorWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Чего в раскладе нет</h2><span class="rule"></span></div>
+      <div class="ref-block" id="missingWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Куда смотрят карты</h2><span class="rule"></span></div>
+      <div class="ref-block" id="gazeWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Повторы карт</h2><span class="rule"></span></div>
+      <div class="ref-block" id="repeatsWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Четыре слоя чтения</h2><span class="rule"></span></div>
+      <div class="ref-block" id="layersWrap"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><h2>Как читать расклад</h2><span class="rule"></span></div>
       <div class="steps">
         <div class="step">
           <span class="step-num">1</span>
           <div>
             <h3>Сначала общая картина</h3>
             <p>Посмотрите на масти и стихии, не читая отдельные карты. Много Мечей — тема про мысли и конфликты.
-              Много Кубков — про чувства. Жезлы — про действие, Пентакли — про деньги и быт.</p>
+              Много Кубков — про чувства. Жезлы — про вдохновение и действие, Пентакли — про деньги и быт.
+              И отдельно отметьте, какой масти нет совсем.</p>
           </div>
         </div>
         <div class="step">
@@ -136,7 +183,7 @@
           <div>
             <h3>Потом старшие арканы</h3>
             <p>Один-два старших аркана — есть важный урок. Больше половины — ситуация крупнее бытового эпизода,
-              и решает её сам этап, а не ваша ловкость.</p>
+              и решает её сам этап, а не ваша ловкость. Помните: старшая карта даёт принцип, младшая — ситуацию.</p>
           </div>
         </div>
         <div class="step">
@@ -175,9 +222,30 @@
 
 <button class="jump-btn" id="jumpBtn" type="button">Смотреть значения <span aria-hidden="true">↓</span></button>
 
+<!-- выбор карты для стола -->
+<div class="picker" id="picker" hidden>
+  <div class="picker-panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+    <div class="picker-head">
+      <div>
+        <span class="picker-pos" id="pickerPos"></span>
+        <h3 id="pickerTitle">Выберите карту</h3>
+      </div>
+      <button class="picker-close" id="pickerClose" type="button" aria-label="Закрыть">×</button>
+    </div>
+    <div class="picker-search">
+      <input id="pickerSearch" type="search" placeholder="Поиск карты: «Мечей», «Пентакли», «Туз»…" autocomplete="off">
+    </div>
+    <div class="picker-grid" id="pickerGrid"></div>
+    <div class="picker-foot">
+      <button class="icon-btn" id="pickerRemove" type="button">Убрать карту</button>
+    </div>
+  </div>
+</div>
+
 <div class="stars" id="stars" aria-hidden="true"></div>
 
 <script src="js/cards.js"></script>
+<script src="js/reference.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -41,8 +41,7 @@ Copy-Item (Join-Path $src 'README.md')  $tmp -Force
 Copy-Item (Join-Path $src 'publish.ps1') $tmp -Force
 New-Item -ItemType Directory -Force -Path (Join-Path $tmp 'css'), (Join-Path $tmp 'js') | Out-Null
 Copy-Item (Join-Path $src 'css\style.css') (Join-Path $tmp 'css') -Force
-Copy-Item (Join-Path $src 'js\cards.js')   (Join-Path $tmp 'js')  -Force
-Copy-Item (Join-Path $src 'js\app.js')     (Join-Path $tmp 'js')  -Force
+Copy-Item (Join-Path $src 'js\*.js') (Join-Path $tmp 'js') -Force
 
 Set-Location $tmp
 git add -A
