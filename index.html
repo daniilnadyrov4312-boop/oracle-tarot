@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Библиотека значений карт Таро: 78 карт, старшие и младшие арканы, разбор мастей и стихий в раскладе.">
+<title>Оракул — значения карт Таро</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%230b0916'/><path d='M50 16 L57 43 L84 50 L57 57 L50 84 L43 57 L16 50 L43 43 Z' fill='%23d9b978'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <a class="brand" href="#">
+      <span class="brand-mark">✦</span>
+      <span>
+        <span class="brand-name">Оракул</span>
+        <span class="brand-sub" style="display:block">таро</span>
+      </span>
+    </a>
+    <nav class="tabs" role="tablist" aria-label="Разделы">
+      <button class="tab is-active" data-tab="cards" role="tab" aria-selected="true">Карты</button>
+      <button class="tab" data-tab="guide" role="tab" aria-selected="false">Справочник</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ============================ КАРТЫ ============================ -->
+  <section id="tab-cards" class="tab-panel" role="tabpanel">
+
+    <div class="hero">
+      <p class="eyebrow">78 карт · прямое положение</p>
+      <h1>Выберите карты — <em>увидите значения</em></h1>
+      <p>Отметьте карты из своего расклада. Справа сразу появятся значения, совет карты
+        и разбор: какие масти и стихии преобладают, о чём это говорит и как соединить карты в одну историю.</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search" id="searchWrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M16.5 16.5 L21 21"></path>
+        </svg>
+        <input id="searchInput" type="search" autocomplete="off" spellcheck="false"
+               placeholder="Поиск: «конфликт», «деньги», «любовь»…" aria-label="Поиск по картам">
+        <button class="search-clear" id="searchClear" type="button" aria-label="Очистить поиск">×</button>
+      </div>
+      <div class="chips" role="group" aria-label="Фильтр по мастям">
+        <button class="chip is-active" data-filter="all">Все<span class="num">78</span></button>
+        <button class="chip" data-filter="major">Старшие<span class="num">22</span></button>
+        <button class="chip" data-filter="wands">Жезлы<span class="num">14</span></button>
+        <button class="chip" data-filter="cups">Кубки<span class="num">14</span></button>
+        <button class="chip" data-filter="swords">Мечи<span class="num">14</span></button>
+        <button class="chip" data-filter="pentacles">Пентакли<span class="num">14</span></button>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <div class="library">
+        <div class="lib-head">
+          <span class="lib-count" id="libCount">78 карт</span>
+          <span class="lib-hint">нажмите на карту, чтобы добавить в расклад</span>
+        </div>
+        <div class="lib-grid" id="libGrid"></div>
+      </div>
+
+      <aside class="panel" id="panel" aria-live="polite">
+        <div class="panel-head">
+          <div class="panel-title">Ваш расклад <span class="panel-count" id="panelCount"></span></div>
+          <div class="panel-actions">
+            <button class="icon-btn" id="clearBtn" type="button" hidden>Очистить</button>
+          </div>
+        </div>
+        <div class="panel-body" id="panelBody"></div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============================ СПРАВОЧНИК ============================ -->
+  <section id="tab-guide" class="tab-panel guide" role="tabpanel" hidden>
+
+    <div class="guide-head">
+      <p class="eyebrow">как читать расклад</p>
+      <h1>Справочник</h1>
+      <p>Масти, стихии и числа — то, что превращает набор карт в читаемый расклад.
+        Значения одной карты мало: важно, чего в раскладе больше и чего не хватает.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <h2>Масти</h2><span class="rule"></span>
+      </div>
+      <div class="suit-grid" id="suitGrid"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <h2>Стихии</h2><span class="rule"></span>
+      </div>
+      <div class="elem-grid" id="elemGrid"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <h2>Числа</h2><span class="rule"></span>
+      </div>
+      <div class="num-grid" id="numGrid"></div>
+      <div class="note-box" style="margin-top:14px">
+        <b>Фигурные карты</b> — это люди и роли, а не события. Паж — весть, новичок, начало;
+        Рыцарь — действие и движение; Королева — зрелая энергия, обращённая вовне;
+        Король — власть, мастерство, ответственность.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <h2>Как читать расклад</h2><span class="rule"></span>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <span class="step-num">1</span>
+          <div>
+            <h3>Сначала общая картина</h3>
+            <p>Посмотрите на масти и стихии, не читая отдельные карты. Много Мечей — тема про мысли и конфликты.
+              Много Кубков — про чувства. Жезлы — про действие, Пентакли — про деньги и быт.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">2</span>
+          <div>
+            <h3>Потом старшие арканы</h3>
+            <p>Один-два старших аркана — есть важный урок. Больше половины — ситуация крупнее бытового эпизода,
+              и решает её сам этап, а не ваша ловкость.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">3</span>
+          <div>
+            <h3>Затем позиции</h3>
+            <p>Каждая карта отвечает на свой вопрос: что было, что есть, что советуют, чем закончится.
+              Не смешивайте ответы — читайте по одной позиции.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="step-num">4</span>
+          <div>
+            <h3>Соберите историю</h3>
+            <p>Соедините значения в одно предложение: «в основе конфликт, совет — уйти, итог — облегчение».
+              Если карты спорят между собой, доверяйте общей картине, а не одной карте.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-box">
+      <b>Только прямое положение.</b> Все значения на этом сайте даны для прямого положения карт —
+      так, как вы привыкли делать расклады. Перевёрнутые значения не используются.
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <span>Оракул · личная библиотека значений Таро</span>
+    <span>78 карт · старшие и младшие арканы · прямое положение</span>
+  </div>
+</footer>
+
+<button class="jump-btn" id="jumpBtn" type="button">Смотреть значения <span aria-hidden="true">↓</span></button>
+
+<div class="stars" id="stars" aria-hidden="true"></div>
+
+<script src="js/cards.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
