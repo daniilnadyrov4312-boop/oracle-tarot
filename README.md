@@ -1,6 +1,10 @@
 # Оракул — библиотека значений Таро
 
+**Сайт:** https://daniilnadyrov4312-boop.github.io/oracle-tarot/  
+**Репозиторий:** https://github.com/daniilnadyrov4312-boop/oracle-tarot
+
 Локальная страница без сборки: открывается двойным кликом по `index.html`.
+Обновить сайт на GitHub — запустить `publish.ps1` (или попросить агента).
 
 ## Что внутри
 
