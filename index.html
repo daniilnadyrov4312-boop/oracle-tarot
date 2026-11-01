@@ -89,22 +89,42 @@
     <div class="hero hero--table">
       <p class="eyebrow">режим стола</p>
       <h1>Раскладывайте <em>на столе</em></h1>
-      <p>Выберите формат, нажмите на пустое поле и поставьте карту. Трактовка идёт отдельно
-        по каждой позиции, а под столом — связки соседних карт, повторы и общая картина.</p>
+      <p>Шаблон задаёт стартовые позиции, но не ограничивает число карт: добавляйте новые,
+        перетаскивайте по столу, привязывайте уточнения к любой карте и подписывайте позиции.</p>
     </div>
 
-    <div class="layout-chips" id="layoutChips" role="group" aria-label="Формат стола"></div>
-
-    <div class="table-stage">
-      <div class="table-felt" id="tableFelt"></div>
+    <div class="board-toolbar">
+      <div class="template-chips" id="templateChips" role="group" aria-label="Шаблон расклада"></div>
+      <div class="board-actions">
+        <button class="b-btn b-btn--primary" id="addCardBtn" type="button">+ Карта</button>
+        <button class="b-btn" id="addSlotBtn" type="button">+ Позиция</button>
+        <button class="b-btn" id="alignBtn" type="button">Выровнять</button>
+        <button class="b-btn" id="shareBoard" type="button">Ссылка</button>
+        <button class="b-btn" id="clearBoard" type="button">Очистить</button>
+      </div>
     </div>
 
-    <div class="table-actions">
-      <span class="table-status" id="tableStatus"></span>
-      <button class="icon-btn" id="clearTable" type="button" hidden>Очистить стол</button>
+    <div class="board-settings" id="boardSettings" hidden></div>
+
+    <div class="board-wrap" id="boardWrap">
+      <div class="board" id="board"></div>
+    </div>
+    <div class="board-status" id="boardStatus"></div>
+
+    <div class="node-bar" id="nodeBar" hidden>
+      <span class="node-bar-title" id="nodeBarTitle"></span>
+      <div class="node-bar-actions">
+        <button class="b-btn b-btn--gold" data-act="clarify" type="button">Уточнение</button>
+        <button class="b-btn" data-act="reparent" type="button">К другой</button>
+        <button class="b-btn" data-act="replace" type="button">Заменить</button>
+        <button class="b-btn" data-act="label" type="button">Подпись</button>
+        <button class="b-btn" data-act="detach" type="button">В позицию</button>
+        <button class="b-btn b-btn--danger" data-act="delete" type="button">Удалить</button>
+        <button class="b-btn b-btn--ghost" data-act="close" type="button">Готово</button>
+      </div>
     </div>
 
-    <div id="tableReadings"></div>
+    <div id="bReadings"></div>
   </section>
 
   <!-- ============================ СПРАВОЧНИК ============================ -->
@@ -223,21 +243,33 @@
 <button class="jump-btn" id="jumpBtn" type="button">Смотреть значения <span aria-hidden="true">↓</span></button>
 
 <!-- выбор карты для стола -->
-<div class="picker" id="picker" hidden>
-  <div class="picker-panel" role="dialog" aria-modal="true" aria-labelledby="pickerTitle">
+<div class="picker" id="bpicker" hidden>
+  <div class="picker-panel" role="dialog" aria-modal="true" aria-label="Выбор карты">
     <div class="picker-head">
       <div>
-        <span class="picker-pos" id="pickerPos"></span>
-        <h3 id="pickerTitle">Выберите карту</h3>
+        <span class="picker-pos" id="bpickerPos"></span>
+        <h3>Выберите карту</h3>
       </div>
-      <button class="picker-close" id="pickerClose" type="button" aria-label="Закрыть">×</button>
+      <button class="picker-close" id="bpickerClose" type="button" aria-label="Закрыть">×</button>
     </div>
     <div class="picker-search">
-      <input id="pickerSearch" type="search" placeholder="Поиск карты: «Мечей», «Пентакли», «Туз»…" autocomplete="off">
+      <input id="bpickerSearch" type="search" placeholder="Поиск карты: «Мечей», «Пентакли», «Туз»…" autocomplete="off">
     </div>
-    <div class="picker-grid" id="pickerGrid"></div>
+    <div class="picker-grid" id="bpickerGrid"></div>
     <div class="picker-foot">
-      <button class="icon-btn" id="pickerRemove" type="button">Убрать карту</button>
+      <button class="icon-btn" id="bpickerRemove" type="button">Убрать карту</button>
+    </div>
+  </div>
+</div>
+
+<!-- подпись позиции -->
+<div class="text-modal" id="textModal" hidden>
+  <div class="text-panel" role="dialog" aria-modal="true" aria-labelledby="textTitle">
+    <h3 id="textTitle">Подпись позиции</h3>
+    <input id="textInput" type="text" maxlength="60" autocomplete="off">
+    <div class="text-actions">
+      <button class="b-btn b-btn--ghost" id="textCancel" type="button">Отмена</button>
+      <button class="b-btn b-btn--primary" id="textSave" type="button">Сохранить</button>
     </div>
   </div>
 </div>
@@ -247,5 +279,6 @@
 <script src="js/cards.js"></script>
 <script src="js/reference.js"></script>
 <script src="js/app.js"></script>
+<script src="js/board.js"></script>
 </body>
 </html>

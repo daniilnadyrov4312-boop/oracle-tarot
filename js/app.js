@@ -447,7 +447,7 @@
     '</article>';
   }
 
-  function summaryHTML(list) {
+  function summaryHTML(list, opts) {
     var a = analyze(list);
 
     function group(title, rows) {
@@ -466,7 +466,7 @@
     }).join('');
 
     return '<div class="summary">' +
-      '<h4>Общая картина</h4>' +
+      (opts && opts.hideTitle ? '' : '<h4>Общая картина</h4>') +
       a.paragraphs.map(function (p) { return '<p>' + p + '</p>'; }).join('') +
       '<div class="bars">' + group('Масти', a.bars) + group('Стихии', a.elBars) + '</div>' +
       (notes ? '<div class="notes">' + notes + '</div>' : '') +
@@ -768,8 +768,10 @@
   }
 
   /* =======================================================================
-     Стол
+     Стол — старая реализация (заменена модулем js/board.js)
+     Оставлена отключённой, чтобы не переписывать весь файл.
      ======================================================================= */
+  if (false) {
   var LAYOUTS = [
     {
       id: 'row3', name: 'Ряд из 3', note: 'прошлое · настоящее · будущее',
@@ -1108,6 +1110,7 @@
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && !picker.hidden) closePicker();
   });
+  } /* end of legacy table implementation */
 
   /* =======================================================================
      Фон
@@ -1160,19 +1163,21 @@
   renderLibrary();
   renderGuide();
   renderPairs();
-  if (hash.layout || hash.table.length) {
-    if (hash.layout) table.layout = hash.layout;
-    resetTable();
-    hash.table.slice(0, table.slots.length).forEach(function (id, i) { table.slots[i] = byId[id]; });
-  } else {
-    loadTable();
-  }
-  if (table.slots.length !== currentLayout().slots.length) resetTable();
-  renderTable();
-  renderTableReadings();
-  if (typeof hash.pick === 'number' && hash.pick >= 0 && hash.pick < table.slots.length) {
-    openPicker(hash.pick);
-  }
   renderPanel();
   if (hash.tab && hash.tab !== 'cards') switchTab(hash.tab);
+
+  /* общие помощники для модуля стола (js/board.js) */
+  window.ORACLE = {
+    byId: byId,
+    CARDS: CARDS,
+    SUITS: SUITS,
+    ELEMENTS: ELEMENTS,
+    TONE_LABEL: TONE_LABEL,
+    cardImage: cardImage,
+    miniCard: miniCard,
+    suitLabel: suitLabel,
+    analyze: analyze,
+    summaryHTML: summaryHTML,
+    plural: plural
+  };
 })();
