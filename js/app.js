@@ -838,6 +838,32 @@
     table.open = null;
   }
 
+  /* стол запоминается между визитами */
+  function saveTable() {
+    try {
+      localStorage.setItem('oracle-table', JSON.stringify({
+        l: table.layout,
+        c: table.slots.map(function (c) { return c ? c.id : null; })
+      }));
+    } catch (e) { /* приватный режим — просто не сохраняем */ }
+  }
+
+  function loadTable() {
+    var raw = null;
+    try { raw = localStorage.getItem('oracle-table'); } catch (e) { return false; }
+    if (!raw) return false;
+    var data;
+    try { data = JSON.parse(raw); } catch (e) { return false; }
+    if (data.l && LAYOUTS.some(function (l) { return l.id === data.l; })) table.layout = data.l;
+    resetTable();
+    if (data.c && data.c.length) {
+      data.c.forEach(function (id, i) {
+        if (id && byId[id] && i < table.slots.length) table.slots[i] = byId[id];
+      });
+    }
+    return true;
+  }
+
   function slotButtonHTML(slot, i, card) {
     var body = card
       ? '<img src="' + cardImage(card) + '" alt="' + card.name + '" loading="lazy">'
@@ -893,6 +919,7 @@
     var filledCount = table.slots.filter(Boolean).length;
     tableStatus.textContent = filledCount + ' из ' + table.slots.length + ' карт';
     clearTableBtn.hidden = filledCount === 0;
+    saveTable();
   }
 
   /* ---------- чтение по позициям ---------- */
@@ -1133,13 +1160,14 @@
   renderLibrary();
   renderGuide();
   renderPairs();
-  if (hash.layout && LAYOUTS.some(function (l) { return l.id === hash.layout; })) {
-    table.layout = hash.layout;
-  }
-  resetTable();
-  if (hash.table.length) {
+  if (hash.layout || hash.table.length) {
+    if (hash.layout) table.layout = hash.layout;
+    resetTable();
     hash.table.slice(0, table.slots.length).forEach(function (id, i) { table.slots[i] = byId[id]; });
+  } else {
+    loadTable();
   }
+  if (table.slots.length !== currentLayout().slots.length) resetTable();
   renderTable();
   renderTableReadings();
   if (typeof hash.pick === 'number' && hash.pick >= 0 && hash.pick < table.slots.length) {
